@@ -27,3 +27,19 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+src/resources/databases/*
+!src/resources/databases/Brazil - 2021/INMET_CO_DF_A001_BRASILIA_01-01-2021_A_31-12-2021.CSV
+!src/resources/databases/Brazil - 2022/INMET_CO_DF_A001_BRASILIA_01-01-2022_A_31-12-2022.CSV
+!src/resources/databases/Brazil - 2023/INMET_CO_DF_A001_BRASILIA_01-01-2023_A_31-12-2023.CSV
+!src/resources/databases/Brazil - 2021/INMET_CO_MS_A702_CAMPO GRANDE_01-01-2021_A_31-12-2021.CSV
+!src/resources/databases/Brazil - 2022/INMET_CO_MS_A702_CAMPO GRANDE_01-01-2022_A_31-12-2022.CSV
+!src/resources/databases/Brazil - 2023/INMET_CO_MS_A702_CAMPO GRANDE_01-01-2023_A_31-12-2023.CSV
+!src/resources/databases/Brazil - 2021/INMET_S_RS_A879_CANELA_01-01-2021_A_31-12-2021.CSV
+!src/resources/databases/Brazil - 2022/INMET_S_RS_A879_CANELA_01-01-2022_A_31-12-2022.CSV
+!src/resources/databases/Brazil - 2023/INMET_S_RS_A879_CANELA_01-01-2023_A_31-12-2023.CSV
+!src/resources/databases/Uruguay - 2021/
+!src/resources/databases/Uruguay - 2022/
+!src/resources/databases/Uruguay - 2023/
+src/resources/output/*
+!src/resources/output/Petrópolis - RJ_-22.508156_-43.175495.csv

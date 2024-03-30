@@ -1,12 +1,8 @@
 package entities
 
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
-import kotlin.math.PI
+import kotlin.math.*
 
-class Point(private val name: String, val latitude: Double, val longitude: Double) {
+class Point(val name: String, val latitude: Double, val longitude: Double) {
     init {
         if(latitude < -90.0 || latitude > 90.0){
             throw IllegalArgumentException("Invalid value for latitude. Note that the latitude value must be between -90 and 90.")

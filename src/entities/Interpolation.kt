@@ -5,8 +5,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.pow
 
-class Interpolation(mainPlace: Point, private var moment: Moment) {
-    private var mainTemperatureMeasurement: TemperatureMeasurement
+class Interpolation(mainPlace: Point, var moment: Moment) {
+    var mainTemperatureMeasurement: TemperatureMeasurement
     private var placeDistanceRelation: Map<TemperatureMeasurement, Double> = HashMap()
 
     init {
@@ -36,9 +36,9 @@ class Interpolation(mainPlace: Point, private var moment: Moment) {
     }
 
     private fun calculateTemperatureForMainPlace(): Double {
-        var numerator: Double = 0.0
-        var denominator: Double = 0.0
-        val powerParameter: Double = 2.5
+        var numerator = 0.0
+        var denominator = 0.0
+        val powerParameter = 2.5
 
         for(tm in placeDistanceRelation.keys){
             numerator += tm.temperature / placeDistanceRelation[tm]!!.pow(powerParameter)

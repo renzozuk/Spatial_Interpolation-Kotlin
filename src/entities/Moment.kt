@@ -6,6 +6,10 @@ import java.time.temporal.ChronoUnit
 class Moment(var instant: Instant) {
     constructor(instant: String) : this(Instant.parse(instant))
 
+    operator fun compareTo(other: Moment): Int {
+        return this.instant.compareTo(other.instant)
+    }
+
     operator fun inc(): Moment {
         return Moment(this.instant.plus(1, ChronoUnit.HOURS))
     }
