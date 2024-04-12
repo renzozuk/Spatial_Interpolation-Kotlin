@@ -37,11 +37,15 @@ fun main() {
         exportInterpolation(MomentIterator("2021", "2023"), locations.subList(locations.size / 3 * 2, locations.size))
     }
 
-    runPlatformThreads(listOf(firstDatabase, secondDatabase, thirdDatabase))
+//    runSequential(listOf(firstDatabase, secondDatabase, thirdDatabase))
+//    runPlatformThreads(listOf(firstDatabase, secondDatabase, thirdDatabase))
+    runVirtualThreads(listOf(firstDatabase, secondDatabase, thirdDatabase))
 
     val checkpoint2 = System.currentTimeMillis().toDouble()
 
-    runPlatformThreads(listOf(firstTask, secondTask, thirdTask))
+//    runSequential(listOf(firstTask, secondTask, thirdTask))
+//    runPlatformThreads(listOf(firstTask, secondTask, thirdTask))
+    runVirtualThreads(listOf(firstTask, secondTask, thirdTask))
 
     val checkpoint3 = System.currentTimeMillis().toDouble()
 
@@ -50,20 +54,32 @@ fun main() {
     println("Total time: ${String.format("%.3fs", (checkpoint3 - checkpoint1) / 1e3)}")
 }
 
+private fun runSequential(runnables: List<Runnable>) {
+    runnables.forEach(Runnable::run)
+}
+
 private fun runPlatformThreads(runnables: List<Runnable>) {
     runPlatformThreads(runnables, 1)
 }
 
+private fun runVirtualThreads(runnables: List<Runnable>) {
+    runVirtualThreads(runnables, 1)
+}
+
 private fun runPlatformThreads(runnables: List<Runnable>, priority: Int) {
-    val threads = mutableListOf<Thread>()
-
-    for(i in runnables.indices){
-        val builder = Thread.ofPlatform().name("worker-", i.toLong()).priority(priority)
-
-        threads.addFirst(builder.start(runnables[i]))
-    }
+    val threads = runnables.stream().map { r -> Thread.ofPlatform().start(r) }.toList()
 
     for(thread in threads){
+        thread.priority = priority
+        thread.join()
+    }
+}
+
+private fun runVirtualThreads(runnables: List<Runnable>, priority: Int) {
+    val threads = runnables.stream().map { r -> Thread.ofVirtual().start(r) }.toList()
+
+    for(thread in threads){
+        thread.priority = priority
         thread.join()
     }
 }
