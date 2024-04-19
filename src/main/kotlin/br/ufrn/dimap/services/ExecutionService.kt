@@ -2,6 +2,7 @@ package br.ufrn.dimap.services
 
 import br.ufrn.dimap.entities.UnknownPoint
 import br.ufrn.dimap.repositories.LocationRepository
+import kotlinx.coroutines.*
 import java.io.IOException
 import java.util.concurrent.Semaphore
 import java.util.function.Consumer
@@ -30,6 +31,56 @@ object ExecutionService {
         for (thread in threads) {
             thread.priority = priority
             thread.join()
+        }
+    }
+    
+    fun importUsingCoroutines() {
+        val semaphore = Semaphore(1)
+
+        runBlocking {
+            val firstTask = async(Dispatchers.Default) { FileManagementService.importRandomData(semaphore) }
+
+            val secondTask = async(Dispatchers.Default) { FileManagementService.importUnknownLocations(semaphore) }
+
+            runBlocking {
+                firstTask.await()
+                secondTask.await()
+            }
+        }
+    }
+
+    fun interpolateUsingCoroutines() {
+        val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
+
+        runBlocking {
+            val firstTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 2)) }
+
+            val secondTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size)) }
+
+            runBlocking {
+                firstTask.await()
+                secondTask.await()
+            }
+        }
+    }
+
+    fun exportUsingCoroutines() {
+        val semaphore = Semaphore(1)
+
+        val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
+
+        runBlocking {
+            val firstTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(0, unknownPoints.size / 3)) }
+
+            val secondTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2)) }
+
+            val thirdTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size)) }
+
+            runBlocking {
+                firstTask.await()
+                secondTask.await()
+                thirdTask.await()
+            }
         }
     }
 
@@ -65,15 +116,11 @@ object ExecutionService {
             val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
 
             val firstTask = Runnable {
-                InterpolationService.assignTemperatureToUnknownPoints(
-                    unknownPoints.subList(0, unknownPoints.size / 2)
-                )
+                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 2))
             }
 
             val secondTask = Runnable {
-                InterpolationService.assignTemperatureToUnknownPoints(
-                    unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size)
-                )
+                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size))
             }
 
             return listOf(firstTask, secondTask)
