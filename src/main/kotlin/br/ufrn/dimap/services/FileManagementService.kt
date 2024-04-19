@@ -24,18 +24,12 @@ object FileManagementService {
 
         val bufferedReader = Files.newBufferedReader(Path.of(HOME + dataPath))
 
-        var line: String
+        var line: String?
 
         while ((bufferedReader.readLine().also { line = it }) != null) {
-            val information = line.split(";".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+            val information = line?.split(";".toRegex())?.dropLastWhile { it.isEmpty() }?.toTypedArray()
 
-            locationRepository.addKnownPoint(
-                KnownPoint(
-                    information[0].toDouble(),
-                    information[1].toDouble(),
-                    information[2].toDouble()
-                )
-            )
+            locationRepository.addKnownPoint(KnownPoint(information?.get(0)?.toDouble() ?: 0.0, information?.get(1)?.toDouble() ?: 0.0, information?.get(2)?.toDouble() ?: 0.0))
         }
 
         bufferedReader.close()
@@ -61,12 +55,12 @@ object FileManagementService {
 
         val bufferedReader = Files.newBufferedReader(Path.of(HOME + "unknown_locations.csv"))
 
-        var line: String
+        var line: String?
 
         while ((bufferedReader.readLine().also { line = it }) != null) {
-            val information = line.split(";".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+            val information = line?.split(";".toRegex())?.dropLastWhile { it.isEmpty() }?.toTypedArray()
 
-            locationRepository.addUnknownPoint(UnknownPoint(information[0].toDouble(), information[1].toDouble()))
+            locationRepository.addUnknownPoint(UnknownPoint(information?.get(0)?.toDouble() ?: 0.0, information?.get(1)?.toDouble() ?: 0.0))
         }
 
         bufferedReader.close()
