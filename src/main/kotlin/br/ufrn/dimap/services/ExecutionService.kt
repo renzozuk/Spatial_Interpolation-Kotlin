@@ -8,7 +8,7 @@ import java.util.concurrent.Semaphore
 import java.util.function.Consumer
 
 object ExecutionService {
-    fun runSequential(tasks: List<Runnable>) {
+    fun runSerial(tasks: List<Runnable>) {
         tasks.forEach(Consumer { obj: Runnable -> obj.run() })
     }
 
