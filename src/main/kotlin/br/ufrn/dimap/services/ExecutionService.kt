@@ -8,13 +8,13 @@ import java.util.concurrent.Semaphore
 import java.util.function.Consumer
 
 object ExecutionService {
-    fun runSerial(tasks: List<Runnable>) {
+    fun runSerial(tasks: Collection<Runnable>) {
         tasks.forEach(Consumer { obj: Runnable -> obj.run() })
     }
 
     @JvmOverloads
     @Throws(InterruptedException::class)
-    fun runPlatformThreads(tasks: List<Runnable>, priority: Int = Thread.MIN_PRIORITY) {
+    fun runPlatformThreads(tasks: Collection<Runnable>, priority: Int = Thread.MIN_PRIORITY) {
         val threads = tasks.stream().map { r: Runnable -> Thread.ofPlatform().name(r.javaClass.simpleName.split("/".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[1]).start(r) }.toList()
 
         for (thread in threads) {
@@ -25,7 +25,7 @@ object ExecutionService {
 
     @JvmOverloads
     @Throws(InterruptedException::class)
-    fun runVirtualThreads(tasks: List<Runnable>, priority: Int = Thread.MIN_PRIORITY) {
+    fun runVirtualThreads(tasks: Collection<Runnable>, priority: Int = Thread.MIN_PRIORITY) {
         val threads = tasks.stream().map { r: Runnable -> Thread.ofVirtual().name(r.javaClass.simpleName.split("/".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[1]).start(r) }.toList()
 
         for (thread in threads) {
@@ -84,7 +84,32 @@ object ExecutionService {
         }
     }
 
-    val importationTasks: List<Runnable>
+    val importationTasksForSerial: Set<Runnable>
+        get() {
+            val importKnownPoints = Runnable {
+                try {
+                    FileManagementService.importRandomData()
+                } catch (e: IOException) {
+                    throw RuntimeException(e)
+                } catch (e: InterruptedException) {
+                    throw RuntimeException(e)
+                }
+            }
+
+            val importUnknownPoints = Runnable {
+                try {
+                    FileManagementService.importUnknownLocations()
+                } catch (e: IOException) {
+                    throw RuntimeException(e)
+                } catch (e: InterruptedException) {
+                    throw RuntimeException(e)
+                }
+            }
+
+            return setOf(importKnownPoints, importUnknownPoints)
+        }
+
+    val importationTasksForThreads: Set<Runnable>
         get() {
             val semaphore = Semaphore(1)
 
@@ -108,10 +133,10 @@ object ExecutionService {
                 }
             }
 
-            return listOf(importKnownPoints, importUnknownPoints)
+            return setOf(importKnownPoints, importUnknownPoints)
         }
 
-    val interpolationTasks: List<Runnable>
+    val interpolationTasks: Set<Runnable>
         get() {
             val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
 
@@ -123,10 +148,47 @@ object ExecutionService {
                 InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size))
             }
 
-            return listOf(firstTask, secondTask)
+            return setOf(firstTask, secondTask)
         }
 
-    val exportationTasks: List<Runnable>
+    val exportationTasksForSerial: Set<Runnable>
+        get() {
+            val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
+
+            val firstTask = Runnable {
+                try {
+                    FileManagementService.exportInterpolations(unknownPoints.subList(0, unknownPoints.size / 3))
+                } catch (e: IOException) {
+                    throw RuntimeException(e)
+                } catch (e: InterruptedException) {
+                    throw RuntimeException(e)
+                }
+            }
+
+            val secondTask = Runnable {
+                try {
+                    FileManagementService.exportInterpolations(unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2))
+                } catch (e: IOException) {
+                    throw RuntimeException(e)
+                } catch (e: InterruptedException) {
+                    throw RuntimeException(e)
+                }
+            }
+
+            val thirdTask = Runnable {
+                try {
+                    FileManagementService.exportInterpolations(unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size))
+                } catch (e: IOException) {
+                    throw RuntimeException(e)
+                } catch (e: InterruptedException) {
+                    throw RuntimeException(e)
+                }
+            }
+
+            return setOf(firstTask, secondTask, thirdTask)
+        }
+
+    val exportationTasksForThreads: Set<Runnable>
         get() {
             val semaphore = Semaphore(1)
 
@@ -162,8 +224,14 @@ object ExecutionService {
                 }
             }
 
-            return listOf(firstTask, secondTask, thirdTask)
+            return setOf(firstTask, secondTask, thirdTask)
         }
+
+    fun printResult(checkpoint1: Long, checkpoint2: Long, checkpoint3: Long) {
+        println("Interpolation time: %.3fs".format((checkpoint2 - checkpoint1) / 1e3))
+        println("Time to export the required locations: %.3fs".format((checkpoint3 - checkpoint2) / 1e3))
+        println("Total time: %.3fs%n".format((checkpoint3 - checkpoint1) / 1e3))
+    }
 
     fun printResult(checkpoint1: Long, checkpoint2: Long, checkpoint3: Long, checkpoint4: Long) {
         println("Time to read the known and unknown locations: %.3fs".format((checkpoint2 - checkpoint1) / 1e3))

@@ -5,7 +5,7 @@ import br.ufrn.dimap.services.ExecutionService
 fun main() {
     val checkpoint1 = System.currentTimeMillis()
 
-    ExecutionService.runSerial(ExecutionService.importationTasks)
+    ExecutionService.runSerial(ExecutionService.importationTasksForSerial)
 
     val checkpoint2 = System.currentTimeMillis()
 
@@ -13,7 +13,7 @@ fun main() {
 
     val checkpoint3 = System.currentTimeMillis()
 
-    ExecutionService.runSerial(ExecutionService.exportationTasks)
+    ExecutionService.runSerial(ExecutionService.exportationTasksForSerial)
 
     val checkpoint4 = System.currentTimeMillis()
 
