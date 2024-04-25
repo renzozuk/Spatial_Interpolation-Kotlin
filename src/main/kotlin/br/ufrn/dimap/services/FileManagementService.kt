@@ -6,9 +6,11 @@ import br.ufrn.dimap.repositories.LocationRepository
 import java.io.BufferedWriter
 import java.io.IOException
 import java.nio.file.Files
+import java.nio.file.Files.newBufferedReader
+import java.nio.file.Files.newBufferedWriter
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import java.util.concurrent.Semaphore
+import java.util.concurrent.locks.Lock
 import kotlin.io.path.*
 
 object FileManagementService {
@@ -18,7 +20,7 @@ object FileManagementService {
     fun importKnownLocations(dataPath: String) {
         val locationRepository: LocationRepository = LocationRepository.instance!!
 
-        val bufferedReader = Files.newBufferedReader(Path.of(HOME + dataPath))
+        val bufferedReader = newBufferedReader(Path.of(HOME + dataPath))
 
         var line: String?
 
@@ -32,14 +34,14 @@ object FileManagementService {
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    fun importKnownLocations(semaphore: Semaphore, dataPath: String) {
-        semaphore.acquire()
+    fun importKnownLocations(lock: Lock, dataPath: String) {
+        lock.lock()
 
         val locationRepository: LocationRepository = LocationRepository.instance!!
 
-        semaphore.release()
+        lock.unlock()
 
-        val bufferedReader = Files.newBufferedReader(Path.of(HOME + dataPath))
+        val bufferedReader = newBufferedReader(Path.of(HOME + dataPath))
 
         var line: String?
 
@@ -58,8 +60,8 @@ object FileManagementService {
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    fun importRandomData(semaphore: Semaphore) {
-        importKnownLocations(semaphore, "databases//random_data.csv")
+    fun importRandomData(lock: Lock) {
+        importKnownLocations(lock, "databases//random_data.csv")
     }
 
     @Throws(IOException::class)
@@ -68,15 +70,15 @@ object FileManagementService {
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    fun importTrueData(semaphore: Semaphore) {
-        importKnownLocations(semaphore, "databases//true_data.csv")
+    fun importTrueData(lock: Lock) {
+        importKnownLocations(lock, "databases//true_data.csv")
     }
 
     @Throws(IOException::class, InterruptedException::class)
     fun importUnknownLocations() {
         val locationRepository: LocationRepository = LocationRepository.instance!!
 
-        val bufferedReader = Files.newBufferedReader(Path.of(HOME + "unknown_locations.csv"))
+        val bufferedReader = newBufferedReader(Path.of(HOME + "unknown_locations.csv"))
 
         var line: String?
 
@@ -90,14 +92,14 @@ object FileManagementService {
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    fun importUnknownLocations(semaphore: Semaphore) {
-        semaphore.acquire()
+    fun importUnknownLocations(lock: Lock) {
+        lock.lock()
 
         val locationRepository: LocationRepository = LocationRepository.instance!!
 
-        semaphore.release()
+        lock.unlock()
 
-        val bufferedReader = Files.newBufferedReader(Path.of(HOME + "unknown_locations.csv"))
+        val bufferedReader = newBufferedReader(Path.of(HOME + "unknown_locations.csv"))
 
         var line: String?
 
@@ -111,18 +113,18 @@ object FileManagementService {
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    fun exportInterpolations(semaphore: Semaphore) {
+    fun exportInterpolations(lock: Lock) {
         val filePath = Path.of(HOME + "output//exported_locations.csv")
 
-        semaphore.acquire()
+        lock.lock()
 
         if (!Files.exists(filePath)) {
             Files.createFile(filePath)
         }
 
-        semaphore.release()
+        lock.unlock()
 
-        val bufferedWriter = Files.newBufferedWriter(filePath, StandardOpenOption.APPEND)
+        val bufferedWriter = newBufferedWriter(filePath, StandardOpenOption.APPEND)
 
         for (unknownPoint in LocationRepository.instance!!.getUnknownPoints()) {
             writeLine(bufferedWriter, unknownPoint)
@@ -139,7 +141,7 @@ object FileManagementService {
             Files.createFile(filePath)
         }
 
-        val bufferedWriter = Files.newBufferedWriter(filePath, StandardOpenOption.APPEND)
+        val bufferedWriter = newBufferedWriter(filePath, StandardOpenOption.APPEND)
 
         for (unknownPoint in unknownPoints) {
             writeLine(bufferedWriter, unknownPoint!!)
@@ -149,18 +151,18 @@ object FileManagementService {
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    fun exportInterpolations(semaphore: Semaphore, unknownPoints: Collection<UnknownPoint?>) {
+    fun exportInterpolations(lock: Lock, unknownPoints: Collection<UnknownPoint?>) {
         val filePath = Path.of(HOME + "output//exported_locations.csv")
 
-        semaphore.acquire()
+        lock.lock()
 
         if (!Files.exists(filePath)) {
             Files.createFile(filePath)
         }
 
-        semaphore.release()
+        lock.unlock()
 
-        val bufferedWriter = Files.newBufferedWriter(filePath, StandardOpenOption.APPEND)
+        val bufferedWriter = newBufferedWriter(filePath, StandardOpenOption.APPEND)
 
         for (unknownPoint in unknownPoints) {
             writeLine(bufferedWriter, unknownPoint!!)
@@ -171,9 +173,9 @@ object FileManagementService {
 
     @Throws(IOException::class)
     private fun writeLine(bufferedWriter: BufferedWriter, unknownPoint: UnknownPoint) {
-        bufferedWriter.write(java.lang.String.format("%.4f", unknownPoint.latitude))
+        bufferedWriter.write(java.lang.String.format("%.6f", unknownPoint.latitude))
         bufferedWriter.write(";")
-        bufferedWriter.write(java.lang.String.format("%.4f", unknownPoint.longitude))
+        bufferedWriter.write(java.lang.String.format("%.6f", unknownPoint.longitude))
         bufferedWriter.write(";")
         bufferedWriter.write(java.lang.String.format("%.1f", unknownPoint.getTemperature()))
         bufferedWriter.newLine()

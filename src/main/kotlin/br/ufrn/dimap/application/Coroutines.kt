@@ -2,7 +2,7 @@ package br.ufrn.dimap.application
 
 import br.ufrn.dimap.services.ExecutionService
 
-suspend fun main() {
+fun main() {
     val checkpoint1 = System.currentTimeMillis()
 
     ExecutionService.importUsingCoroutines()

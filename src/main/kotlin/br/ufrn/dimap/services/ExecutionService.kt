@@ -4,8 +4,9 @@ import br.ufrn.dimap.entities.UnknownPoint
 import br.ufrn.dimap.repositories.LocationRepository
 import kotlinx.coroutines.*
 import java.io.IOException
-import java.util.concurrent.Semaphore
+import java.util.concurrent.locks.ReentrantLock
 import java.util.function.Consumer
+import java.util.stream.Collectors
 
 object ExecutionService {
     fun runSerial(tasks: Collection<Runnable>) {
@@ -15,9 +16,7 @@ object ExecutionService {
     @JvmOverloads
     @Throws(InterruptedException::class)
     fun runPlatformThreads(tasks: Collection<Runnable>, priority: Int = Thread.MIN_PRIORITY) {
-        val threads = tasks.stream().map { r: Runnable -> Thread.ofPlatform().name(r.javaClass.simpleName.split("/".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[1]).start(r) }.toList()
-
-        for (thread in threads) {
+        for (thread in tasks.stream().map { r: Runnable -> Thread.ofPlatform().name(r.javaClass.toString().split("$").last()).start(r) }.collect(Collectors.toUnmodifiableSet())) {
             thread.priority = priority
             thread.join()
         }
@@ -26,21 +25,19 @@ object ExecutionService {
     @JvmOverloads
     @Throws(InterruptedException::class)
     fun runVirtualThreads(tasks: Collection<Runnable>, priority: Int = Thread.MIN_PRIORITY) {
-        val threads = tasks.stream().map { r: Runnable -> Thread.ofVirtual().name(r.javaClass.simpleName.split("/".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[1]).start(r) }.toList()
-
-        for (thread in threads) {
+        for (thread in tasks.stream().map { r: Runnable -> Thread.ofVirtual().name(r.javaClass.toString().split("$").last()).start(r) }.collect(Collectors.toUnmodifiableSet())) {
             thread.priority = priority
             thread.join()
         }
     }
     
     fun importUsingCoroutines() {
-        val semaphore = Semaphore(1)
+        val lock = ReentrantLock()
 
         runBlocking {
-            val firstTask = async(Dispatchers.Default) { FileManagementService.importRandomData(semaphore) }
+            val firstTask = async(Dispatchers.Default) { FileManagementService.importRandomData(lock) }
 
-            val secondTask = async(Dispatchers.Default) { FileManagementService.importUnknownLocations(semaphore) }
+            val secondTask = async(Dispatchers.Default) { FileManagementService.importUnknownLocations(lock) }
 
             runBlocking {
                 firstTask.await()
@@ -53,28 +50,31 @@ object ExecutionService {
         val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
 
         runBlocking {
-            val firstTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 2)) }
+            val firstTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 3)) }
 
-            val secondTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size)) }
+            val secondTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2)) }
+
+            val thirdTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size)) }
 
             runBlocking {
                 firstTask.await()
                 secondTask.await()
+                thirdTask.await()
             }
         }
     }
 
     fun exportUsingCoroutines() {
-        val semaphore = Semaphore(1)
+        val lock = ReentrantLock()
 
         val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
 
         runBlocking {
-            val firstTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(0, unknownPoints.size / 3)) }
+            val firstTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(lock, unknownPoints.subList(0, unknownPoints.size / 3)) }
 
-            val secondTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2)) }
+            val secondTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(lock, unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2)) }
 
-            val thirdTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size)) }
+            val thirdTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(lock, unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size)) }
 
             runBlocking {
                 firstTask.await()
@@ -111,11 +111,11 @@ object ExecutionService {
 
     val importationTasksForThreads: Set<Runnable>
         get() {
-            val semaphore = Semaphore(1)
+            val lock = ReentrantLock()
 
             val importKnownPoints = Runnable {
                 try {
-                    FileManagementService.importRandomData(semaphore)
+                    FileManagementService.importRandomData(lock)
                 } catch (e: IOException) {
                     throw RuntimeException(e)
                 } catch (e: InterruptedException) {
@@ -125,7 +125,7 @@ object ExecutionService {
 
             val importUnknownPoints = Runnable {
                 try {
-                    FileManagementService.importUnknownLocations(semaphore)
+                    FileManagementService.importUnknownLocations(lock)
                 } catch (e: IOException) {
                     throw RuntimeException(e)
                 } catch (e: InterruptedException) {
@@ -141,14 +141,18 @@ object ExecutionService {
             val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
 
             val firstTask = Runnable {
-                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 2))
+                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 3))
             }
 
             val secondTask = Runnable {
-                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size))
+                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2))
             }
 
-            return setOf(firstTask, secondTask)
+            val thirdTask = Runnable {
+                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size))
+            }
+
+            return setOf(firstTask, secondTask, thirdTask)
         }
 
     val exportationTasksForSerial: Set<Runnable>
@@ -190,13 +194,13 @@ object ExecutionService {
 
     val exportationTasksForThreads: Set<Runnable>
         get() {
-            val semaphore = Semaphore(1)
+            val lock = ReentrantLock()
 
             val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
 
             val firstTask = Runnable {
                 try {
-                    FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(0, unknownPoints.size / 3))
+                    FileManagementService.exportInterpolations(lock, unknownPoints.subList(0, unknownPoints.size / 3))
                 } catch (e: IOException) {
                     throw RuntimeException(e)
                 } catch (e: InterruptedException) {
@@ -206,7 +210,7 @@ object ExecutionService {
 
             val secondTask = Runnable {
                 try {
-                    FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2))
+                    FileManagementService.exportInterpolations(lock, unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2))
                 } catch (e: IOException) {
                     throw RuntimeException(e)
                 } catch (e: InterruptedException) {
@@ -216,7 +220,7 @@ object ExecutionService {
 
             val thirdTask = Runnable {
                 try {
-                    FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size))
+                    FileManagementService.exportInterpolations(lock, unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size))
                 } catch (e: IOException) {
                     throw RuntimeException(e)
                 } catch (e: InterruptedException) {
