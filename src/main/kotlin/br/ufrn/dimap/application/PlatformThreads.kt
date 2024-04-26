@@ -1,22 +1,22 @@
 package br.ufrn.dimap.application
 
-import br.ufrn.dimap.services.ExecutionService
+import br.ufrn.dimap.services.ExecutionService.exportationTasksForThreads
+import br.ufrn.dimap.services.ExecutionService.importationTasksForThreads
+import br.ufrn.dimap.services.ExecutionService.interpolationTasks
+import br.ufrn.dimap.services.ExecutionService.printResult
+import br.ufrn.dimap.services.ExecutionService.runPlatformThreads
 
 @Throws(InterruptedException::class)
 fun main() {
+    runPlatformThreads(importationTasksForThreads)
+
     val checkpoint1 = System.currentTimeMillis()
 
-    ExecutionService.runPlatformThreads(ExecutionService.importationTasksForThreads)
+    runPlatformThreads(interpolationTasks)
 
     val checkpoint2 = System.currentTimeMillis()
 
-    ExecutionService.runPlatformThreads(ExecutionService.interpolationTasks)
+    runPlatformThreads(exportationTasksForThreads)
 
-    val checkpoint3 = System.currentTimeMillis()
-
-    ExecutionService.runPlatformThreads(ExecutionService.exportationTasksForThreads)
-
-    val checkpoint4 = System.currentTimeMillis()
-
-    ExecutionService.printResult(checkpoint1, checkpoint2, checkpoint3, checkpoint4)
+    printResult(checkpoint1, checkpoint2)
 }

@@ -58,10 +58,7 @@ abstract class Point(latitude: Double, longitude: Double) {
 
         val latitudeDistance = point.latitude * Math.PI / 180 - latitude * Math.PI / 180
         val longitudeDistance = point.longitude * Math.PI / 180 - longitude * Math.PI / 180
-        val a =
-            sin(latitudeDistance / 2) * sin(latitudeDistance / 2) + cos(latitude * Math.PI / 180) * cos(
-                point.latitude * Math.PI / 180
-            ) * sin(longitudeDistance / 2) * sin(longitudeDistance / 2)
+        val a = sin(latitudeDistance / 2) * sin(latitudeDistance / 2) + cos(latitude * Math.PI / 180) * cos(point.latitude * Math.PI / 180) * sin(longitudeDistance / 2) * sin(longitudeDistance / 2)
         //        6378.137 = earth radius
         return 6378.137 * 2 * atan2(sqrt(a), sqrt(1 - a))
     }

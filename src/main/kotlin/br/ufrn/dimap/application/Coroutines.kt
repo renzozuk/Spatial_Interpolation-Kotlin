@@ -1,21 +1,20 @@
 package br.ufrn.dimap.application
 
-import br.ufrn.dimap.services.ExecutionService
+import br.ufrn.dimap.services.ExecutionService.exportUsingCoroutines
+import br.ufrn.dimap.services.ExecutionService.importUsingCoroutines
+import br.ufrn.dimap.services.ExecutionService.interpolateUsingCoroutines
+import br.ufrn.dimap.services.ExecutionService.printResult
 
 fun main() {
+    importUsingCoroutines()
+
     val checkpoint1 = System.currentTimeMillis()
 
-    ExecutionService.importUsingCoroutines()
+    interpolateUsingCoroutines()
 
     val checkpoint2 = System.currentTimeMillis()
 
-    ExecutionService.interpolateUsingCoroutines()
+    exportUsingCoroutines()
 
-    val checkpoint3 = System.currentTimeMillis()
-
-    ExecutionService.exportUsingCoroutines()
-
-    val checkpoint4 = System.currentTimeMillis()
-
-    ExecutionService.printResult(checkpoint1, checkpoint2, checkpoint3, checkpoint4)
+    printResult(checkpoint1, checkpoint2)
 }

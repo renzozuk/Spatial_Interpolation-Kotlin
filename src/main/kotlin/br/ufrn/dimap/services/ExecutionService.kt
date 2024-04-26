@@ -50,16 +50,19 @@ object ExecutionService {
         val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
 
         runBlocking {
-            val firstTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 3)) }
+            val firstTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 4)) }
 
-            val secondTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2)) }
+            val secondTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4, unknownPoints.size / 2)) }
 
-            val thirdTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size)) }
+            val thirdTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size / 4 * 3)) }
+
+            val fourthTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4 * 3, unknownPoints.size)) }
 
             runBlocking {
                 firstTask.await()
                 secondTask.await()
                 thirdTask.await()
+                fourthTask.await()
             }
         }
     }
@@ -141,18 +144,22 @@ object ExecutionService {
             val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
 
             val firstTask = Runnable {
-                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 3))
+                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 4))
             }
 
             val secondTask = Runnable {
-                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2))
+                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4, unknownPoints.size / 2))
             }
 
             val thirdTask = Runnable {
-                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size))
+                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size / 4 * 3))
             }
 
-            return setOf(firstTask, secondTask, thirdTask)
+            val fourthTask = Runnable {
+                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4 * 3, unknownPoints.size))
+            }
+
+            return setOf(firstTask, secondTask, thirdTask, fourthTask)
         }
 
     val exportationTasksForSerial: Set<Runnable>
@@ -231,15 +238,13 @@ object ExecutionService {
             return setOf(firstTask, secondTask, thirdTask)
         }
 
-    fun printResult(checkpoint1: Long, checkpoint2: Long, checkpoint3: Long) {
+    fun printResult(checkpoint1: Long, checkpoint2: Long) {
         println("Interpolation time: %.3fs".format((checkpoint2 - checkpoint1) / 1e3))
-        println("Time to export the required locations: %.3fs".format((checkpoint3 - checkpoint2) / 1e3))
-        println("Total time: %.3fs%n".format((checkpoint3 - checkpoint1) / 1e3))
     }
 
     fun printResult(checkpoint1: Long, checkpoint2: Long, checkpoint3: Long, checkpoint4: Long) {
         println("Time to read the known and unknown locations: %.3fs".format((checkpoint2 - checkpoint1) / 1e3))
-        println("Interpolation time: %.3fs".format((checkpoint3 - checkpoint2) / 1e3))
+        printResult(checkpoint2, checkpoint3)
         println("Time to export the required locations: %.3fs".format((checkpoint4 - checkpoint3) / 1e3))
         println("Total time: %.3fs%n".format((checkpoint4 - checkpoint1) / 1e3))
     }

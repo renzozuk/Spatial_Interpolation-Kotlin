@@ -1,21 +1,21 @@
 package br.ufrn.dimap.application
 
-import br.ufrn.dimap.services.ExecutionService
+import br.ufrn.dimap.services.ExecutionService.exportationTasksForSerial
+import br.ufrn.dimap.services.ExecutionService.importationTasksForSerial
+import br.ufrn.dimap.services.ExecutionService.interpolationTasks
+import br.ufrn.dimap.services.ExecutionService.printResult
+import br.ufrn.dimap.services.ExecutionService.runSerial
 
 fun main() {
+    runSerial(importationTasksForSerial)
+
     val checkpoint1 = System.currentTimeMillis()
 
-    ExecutionService.runSerial(ExecutionService.importationTasksForSerial)
+    runSerial(interpolationTasks)
 
     val checkpoint2 = System.currentTimeMillis()
 
-    ExecutionService.runSerial(ExecutionService.interpolationTasks)
+    runSerial(exportationTasksForSerial)
 
-    val checkpoint3 = System.currentTimeMillis()
-
-    ExecutionService.runSerial(ExecutionService.exportationTasksForSerial)
-
-    val checkpoint4 = System.currentTimeMillis()
-
-    ExecutionService.printResult(checkpoint1, checkpoint2, checkpoint3, checkpoint4)
+    printResult(checkpoint1, checkpoint2)
 }

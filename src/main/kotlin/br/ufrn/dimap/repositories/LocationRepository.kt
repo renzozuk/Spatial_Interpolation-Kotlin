@@ -4,8 +4,8 @@ import br.ufrn.dimap.entities.KnownPoint
 import br.ufrn.dimap.entities.UnknownPoint
 
 class LocationRepository private constructor() {
-    private val knownPoints: MutableSet<KnownPoint> = HashSet<KnownPoint>()
-    private val unknownPoints: MutableSet<UnknownPoint> = HashSet<UnknownPoint>()
+    private val knownPoints: MutableSet<KnownPoint> = HashSet()
+    private val unknownPoints: MutableSet<UnknownPoint> = HashSet()
 
     companion object {
         var instance: LocationRepository? = null
