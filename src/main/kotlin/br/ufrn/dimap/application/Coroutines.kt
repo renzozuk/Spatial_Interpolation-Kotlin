@@ -4,17 +4,24 @@ import br.ufrn.dimap.services.ExecutionService.exportUsingCoroutines
 import br.ufrn.dimap.services.ExecutionService.importUsingCoroutines
 import br.ufrn.dimap.services.ExecutionService.interpolateUsingCoroutines
 import br.ufrn.dimap.services.ExecutionService.printResult
+import br.ufrn.dimap.services.FileManagementService.defineExportationPath
+import java.lang.System.currentTimeMillis
 
 fun main() {
+    val checkpoint1 = currentTimeMillis()
+
     importUsingCoroutines()
 
-    val checkpoint1 = System.currentTimeMillis()
+    val checkpoint2 = currentTimeMillis()
 
     interpolateUsingCoroutines()
 
-    val checkpoint2 = System.currentTimeMillis()
+    val checkpoint3 = currentTimeMillis()
 
+    defineExportationPath()
     exportUsingCoroutines()
 
-    printResult(checkpoint1, checkpoint2)
+    val checkpoint4 = currentTimeMillis()
+
+    printResult(checkpoint1, checkpoint2, checkpoint3, checkpoint4)
 }

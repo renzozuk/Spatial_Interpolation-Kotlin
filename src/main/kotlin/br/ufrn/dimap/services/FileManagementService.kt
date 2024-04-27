@@ -5,16 +5,20 @@ import br.ufrn.dimap.entities.UnknownPoint
 import br.ufrn.dimap.repositories.LocationRepository
 import java.io.BufferedWriter
 import java.io.IOException
+import java.lang.String.format
 import java.nio.file.Files
 import java.nio.file.Files.newBufferedReader
 import java.nio.file.Files.newBufferedWriter
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.time.Instant
+import java.time.ZoneId
 import java.util.concurrent.locks.Lock
 import kotlin.io.path.*
 
 object FileManagementService {
     private const val HOME = "src//main//resources//"
+    private var exportationPath = Path.of(HOME + "output//exported_locations.csv")
 
     @Throws(IOException::class)
     fun importKnownLocations(dataPath: String) {
@@ -112,6 +116,12 @@ object FileManagementService {
         bufferedReader.close()
     }
 
+    @JvmStatic
+    fun defineExportationPath() {
+        val zdt = Instant.now().atZone(ZoneId.of("Etc/GMT+0"))
+        exportationPath = Path.of(HOME + "output/exported_locations_" + format("%04d.%02d.%02d-%02d.%02d.%02d.csv", zdt.year, zdt.monthValue, zdt.dayOfMonth, zdt.hour, zdt.minute, zdt.second))
+    }
+
     @Throws(IOException::class, InterruptedException::class)
     fun exportInterpolations(lock: Lock) {
         val filePath = Path.of(HOME + "output//exported_locations.csv")
@@ -135,13 +145,11 @@ object FileManagementService {
 
     @Throws(IOException::class, InterruptedException::class)
     fun exportInterpolations(unknownPoints: Collection<UnknownPoint?>) {
-        val filePath = Path.of(HOME + "output//exported_locations.csv")
-
-        if (!Files.exists(filePath)) {
-            Files.createFile(filePath)
+        if (!Files.exists(exportationPath)) {
+            Files.createFile(exportationPath)
         }
 
-        val bufferedWriter = newBufferedWriter(filePath, StandardOpenOption.APPEND)
+        val bufferedWriter = newBufferedWriter(exportationPath, StandardOpenOption.APPEND)
 
         for (unknownPoint in unknownPoints) {
             writeLine(bufferedWriter, unknownPoint!!)
@@ -152,17 +160,15 @@ object FileManagementService {
 
     @Throws(IOException::class, InterruptedException::class)
     fun exportInterpolations(lock: Lock, unknownPoints: Collection<UnknownPoint?>) {
-        val filePath = Path.of(HOME + "output//exported_locations.csv")
-
         lock.lock()
 
-        if (!Files.exists(filePath)) {
-            Files.createFile(filePath)
+        if (!Files.exists(exportationPath)) {
+            Files.createFile(exportationPath)
         }
 
         lock.unlock()
 
-        val bufferedWriter = newBufferedWriter(filePath, StandardOpenOption.APPEND)
+        val bufferedWriter = newBufferedWriter(exportationPath, StandardOpenOption.APPEND)
 
         for (unknownPoint in unknownPoints) {
             writeLine(bufferedWriter, unknownPoint!!)
@@ -173,11 +179,7 @@ object FileManagementService {
 
     @Throws(IOException::class)
     private fun writeLine(bufferedWriter: BufferedWriter, unknownPoint: UnknownPoint) {
-        bufferedWriter.write(java.lang.String.format("%.6f", unknownPoint.latitude))
-        bufferedWriter.write(";")
-        bufferedWriter.write(java.lang.String.format("%.6f", unknownPoint.longitude))
-        bufferedWriter.write(";")
-        bufferedWriter.write(java.lang.String.format("%.1f", unknownPoint.getTemperature()))
+        bufferedWriter.write(format("%.6f;%.6f;%.1f", unknownPoint.latitude, unknownPoint.longitude, unknownPoint.getTemperature()))
         bufferedWriter.newLine()
     }
 }
