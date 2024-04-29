@@ -2,14 +2,16 @@ package br.ufrn.dimap.services
 
 import br.ufrn.dimap.entities.UnknownPoint
 import br.ufrn.dimap.repositories.LocationRepository
+import br.ufrn.dimap.services.InterpolationService.assignTemperatureToUnknownPoints
+import kotlinx.coroutines.*
 import java.io.IOException
-import java.util.concurrent.Semaphore as JavaSemaphore
 import java.util.concurrent.locks.ReentrantLock
 import java.util.function.Consumer
 import java.util.stream.Collectors
-import kotlinx.coroutines.*
+import java.util.stream.IntStream
 import kotlinx.coroutines.sync.Mutex as KotlinMutex
 import kotlinx.coroutines.sync.Semaphore as KotlinSemaphore
+import java.util.concurrent.Semaphore as JavaSemaphore
 
 object ExecutionService {
     fun runSerial(tasks: Collection<Runnable>) {
@@ -206,26 +208,27 @@ object ExecutionService {
 
     val interpolationTasks: Set<Runnable>
         get() {
-            val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
-
-            val firstTask = Runnable {
-                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 4))
-            }
-
-            val secondTask = Runnable {
-                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4, unknownPoints.size / 2))
-            }
-
-            val thirdTask = Runnable {
-                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size / 4 * 3))
-            }
-
-            val fourthTask = Runnable {
-                InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4 * 3, unknownPoints.size))
-            }
-
-            return setOf(firstTask, secondTask, thirdTask, fourthTask)
+            return getInterpolationTasksByQuantity(Runtime.getRuntime().availableProcessors())
         }
+
+    private fun getInterpolationTasksByQuantity(quantity: Int): Set<Runnable> {
+        val unknownPoints: List<UnknownPoint?> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
+
+        val tasks: MutableSet<Runnable> = HashSet()
+
+        IntStream.range(0, quantity).forEach { i: Int ->
+            tasks.add(Runnable {
+                assignTemperatureToUnknownPoints(
+                    unknownPoints.subList(
+                        unknownPoints.size / quantity * i,
+                        unknownPoints.size / quantity * (i + 1)
+                    )
+                )
+            })
+        }
+
+        return tasks
+    }
 
     val exportationTasksForSerial: Set<Runnable>
         get() {
