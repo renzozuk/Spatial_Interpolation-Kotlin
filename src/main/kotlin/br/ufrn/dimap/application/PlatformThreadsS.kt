@@ -1,9 +1,9 @@
 package br.ufrn.dimap.application
 
+import br.ufrn.dimap.services.ExecutionService.exportationTask
 import br.ufrn.dimap.services.ExecutionService.interpolationTasks
 import br.ufrn.dimap.services.ExecutionService.printResult
 import br.ufrn.dimap.services.ExecutionService.runPlatformThreads
-import br.ufrn.dimap.services.ExecutionService.semaphoreVersionOfExportationTasksForThreads as exportationTasks
 import br.ufrn.dimap.services.ExecutionService.semaphoreVersionOfImportationTasksForThreads as importationTasks
 import br.ufrn.dimap.services.FileManagementService.defineExportationPath
 import java.lang.System.currentTimeMillis
@@ -21,7 +21,7 @@ fun main() {
     val checkpoint3 = currentTimeMillis()
 
     defineExportationPath()
-    runPlatformThreads(exportationTasks)
+    runPlatformThreads(exportationTask)
 
     val checkpoint4 = currentTimeMillis()
 

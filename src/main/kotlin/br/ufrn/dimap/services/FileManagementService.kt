@@ -216,58 +216,6 @@ object FileManagementService {
         writeLines(exportationPath, unknownPoints)
     }
 
-    @Throws(IOException::class, InterruptedException::class)
-    fun exportInterpolations(lock: Lock, unknownPoints: Collection<UnknownPoint?>) {
-        lock.lock()
-
-        if (!Files.exists(exportationPath)) {
-            Files.createFile(exportationPath)
-        }
-
-        lock.unlock()
-
-        writeLines(exportationPath, unknownPoints)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    suspend fun exportInterpolations(lock: KotlinMutex, unknownPoints: Collection<UnknownPoint?>) {
-        lock.lock()
-
-        if (!Files.exists(exportationPath)) {
-            Files.createFile(exportationPath)
-        }
-
-        lock.unlock()
-
-        writeLines(exportationPath, unknownPoints)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    fun exportInterpolations(semaphore: JavaSemaphore, unknownPoints: Collection<UnknownPoint?>) {
-        semaphore.acquire()
-
-        if (!Files.exists(exportationPath)) {
-            Files.createFile(exportationPath)
-        }
-
-        semaphore.release()
-
-        writeLines(exportationPath, unknownPoints)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    suspend fun exportInterpolations(semaphore: KotlinSemaphore, unknownPoints: Collection<UnknownPoint?>) {
-        semaphore.acquire()
-
-        if (!Files.exists(exportationPath)) {
-            Files.createFile(exportationPath)
-        }
-
-        semaphore.release()
-
-        writeLines(exportationPath, unknownPoints)
-    }
-
     @Throws(IOException::class)
     private fun writeLines(path: Path, unknownPoints: Collection<UnknownPoint?>) {
         val bufferedWriter = newBufferedWriter(path, StandardOpenOption.APPEND)

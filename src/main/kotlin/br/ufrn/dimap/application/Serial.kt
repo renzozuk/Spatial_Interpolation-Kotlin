@@ -1,6 +1,6 @@
 package br.ufrn.dimap.application
 
-import br.ufrn.dimap.services.ExecutionService.exportationTasksForSerial as exportationTasks
+import br.ufrn.dimap.services.ExecutionService.exportationTask
 import br.ufrn.dimap.services.ExecutionService.importationTasksForSerial as importationTasks
 import br.ufrn.dimap.services.ExecutionService.interpolationTasks
 import br.ufrn.dimap.services.ExecutionService.printResult
@@ -20,7 +20,7 @@ fun main() {
     val checkpoint3 = currentTimeMillis()
 
     defineExportationPath()
-    runSerial(exportationTasks)
+    runSerial(exportationTask)
 
     val checkpoint4 = currentTimeMillis()
 

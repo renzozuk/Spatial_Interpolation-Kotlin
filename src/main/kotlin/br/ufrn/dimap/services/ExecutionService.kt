@@ -2,6 +2,7 @@ package br.ufrn.dimap.services
 
 import br.ufrn.dimap.entities.UnknownPoint
 import br.ufrn.dimap.repositories.LocationRepository
+import br.ufrn.dimap.services.FileManagementService.exportInterpolations
 import br.ufrn.dimap.services.InterpolationService.assignTemperatureToUnknownPoints
 import kotlinx.coroutines.*
 import java.io.IOException
@@ -14,8 +15,18 @@ import kotlinx.coroutines.sync.Semaphore as KotlinSemaphore
 import java.util.concurrent.Semaphore as JavaSemaphore
 
 object ExecutionService {
+    fun runSerial(task: Runnable) {
+        task.run()
+    }
+
     fun runSerial(tasks: Collection<Runnable>) {
         tasks.forEach(Consumer { t: Runnable -> t.run() })
+    }
+
+    @Throws(InterruptedException::class)
+    fun runPlatformThreads(task: Runnable) {
+        val uniqueThread = Thread.ofPlatform().name(task.javaClass.toString().split("$").last()).start(task)
+        uniqueThread.join()
     }
 
     @JvmOverloads
@@ -25,6 +36,12 @@ object ExecutionService {
             thread.priority = priority
             thread.join()
         }
+    }
+
+    @Throws(InterruptedException::class)
+    fun runVirtualThreads(task: Runnable) {
+        val uniqueThread = Thread.ofVirtual().name(task.javaClass.toString().split("$").last()).start(task)
+        uniqueThread.join()
     }
 
     @JvmOverloads
@@ -70,13 +87,13 @@ object ExecutionService {
         val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
 
         runBlocking {
-            val firstTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 4)) }
+            val firstTask = async(Dispatchers.Default) { assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 4)) }
 
-            val secondTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4, unknownPoints.size / 2)) }
+            val secondTask = async(Dispatchers.Default) { assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4, unknownPoints.size / 2)) }
 
-            val thirdTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size / 4 * 3)) }
+            val thirdTask = async(Dispatchers.Default) { assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size / 4 * 3)) }
 
-            val fourthTask = async(Dispatchers.Default) { InterpolationService.assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4 * 3, unknownPoints.size)) }
+            val fourthTask = async(Dispatchers.Default) { assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4 * 3, unknownPoints.size)) }
 
             runBlocking {
                 firstTask.await()
@@ -87,42 +104,12 @@ object ExecutionService {
         }
     }
 
-    fun mutexVersionOfExportingUsingCoroutines() {
-        val lock = KotlinMutex()
-
-        val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
-
+    fun exportUsingCoroutines() {
         runBlocking {
-            val firstTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(lock, unknownPoints.subList(0, unknownPoints.size / 3)) }
-
-            val secondTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(lock, unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2)) }
-
-            val thirdTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(lock, unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size)) }
+            val uniqueTask = async(Dispatchers.Default) { exportInterpolations(LocationRepository.instance!!.getUnknownPoints()) }
 
             runBlocking {
-                firstTask.await()
-                secondTask.await()
-                thirdTask.await()
-            }
-        }
-    }
-
-    fun semaphoreVersionOfExportingUsingCoroutines() {
-        val semaphore = KotlinSemaphore(1)
-
-        val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
-
-        runBlocking {
-            val firstTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(0, unknownPoints.size / 3)) }
-
-            val secondTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2)) }
-
-            val thirdTask = async(Dispatchers.Default) { FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size)) }
-
-            runBlocking {
-                firstTask.await()
-                secondTask.await()
-                thirdTask.await()
+                uniqueTask.await()
             }
         }
     }
@@ -230,119 +217,17 @@ object ExecutionService {
         return tasks
     }
 
-    val exportationTasksForSerial: Set<Runnable>
+    val exportationTask: Runnable
         get() {
-            val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
-
-            val firstTask = Runnable {
+            return Runnable {
                 try {
-                    FileManagementService.exportInterpolations(unknownPoints.subList(0, unknownPoints.size / 3))
+                    exportInterpolations(LocationRepository.instance!!.getUnknownPoints())
                 } catch (e: IOException) {
-                    throw RuntimeException(e)
+                    throw java.lang.RuntimeException(e)
                 } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
+                    throw java.lang.RuntimeException(e)
                 }
             }
-
-            val secondTask = Runnable {
-                try {
-                    FileManagementService.exportInterpolations(unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2))
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            val thirdTask = Runnable {
-                try {
-                    FileManagementService.exportInterpolations(unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size))
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            return setOf(firstTask, secondTask, thirdTask)
-        }
-
-    val mutexVersionOfExportationTasksForThreads: Set<Runnable>
-        get() {
-            val lock = ReentrantLock()
-
-            val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
-
-            val firstTask = Runnable {
-                try {
-                    FileManagementService.exportInterpolations(lock, unknownPoints.subList(0, unknownPoints.size / 3))
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            val secondTask = Runnable {
-                try {
-                    FileManagementService.exportInterpolations(lock, unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2))
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            val thirdTask = Runnable {
-                try {
-                    FileManagementService.exportInterpolations(lock, unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size))
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            return setOf(firstTask, secondTask, thirdTask)
-        }
-
-    val semaphoreVersionOfExportationTasksForThreads: Set<Runnable>
-        get() {
-            val semaphore = JavaSemaphore(1)
-
-            val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
-
-            val firstTask = Runnable {
-                try {
-                    FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(0, unknownPoints.size / 3))
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            val secondTask = Runnable {
-                try {
-                    FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(unknownPoints.size / 3, unknownPoints.size / 3 * 2))
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            val thirdTask = Runnable {
-                try {
-                    FileManagementService.exportInterpolations(semaphore, unknownPoints.subList(unknownPoints.size / 3 * 2, unknownPoints.size))
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            return setOf(firstTask, secondTask, thirdTask)
         }
 
     fun printResult(checkpoint1: Long, checkpoint2: Long) {

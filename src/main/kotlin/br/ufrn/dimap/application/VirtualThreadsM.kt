@@ -1,6 +1,6 @@
 package br.ufrn.dimap.application
 
-import br.ufrn.dimap.services.ExecutionService.mutexVersionOfExportationTasksForThreads as exportationTasks
+import br.ufrn.dimap.services.ExecutionService.exportationTask
 import br.ufrn.dimap.services.ExecutionService.mutexVersionOfImportationTasksForThreads as importationTasks
 import br.ufrn.dimap.services.ExecutionService.interpolationTasks
 import br.ufrn.dimap.services.ExecutionService.printResult
@@ -21,7 +21,7 @@ fun main() {
     val checkpoint3 = currentTimeMillis()
 
     defineExportationPath()
-    runVirtualThreads(exportationTasks)
+    runVirtualThreads(exportationTask)
 
     val checkpoint4 = currentTimeMillis()
 

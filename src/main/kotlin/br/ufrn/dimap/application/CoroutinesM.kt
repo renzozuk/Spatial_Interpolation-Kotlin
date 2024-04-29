@@ -1,6 +1,6 @@
 package br.ufrn.dimap.application
 
-import br.ufrn.dimap.services.ExecutionService.mutexVersionOfExportingUsingCoroutines as runExportationTasks
+import br.ufrn.dimap.services.ExecutionService.exportUsingCoroutines as runExportationTask
 import br.ufrn.dimap.services.ExecutionService.mutexVersionOfImportationUsingCoroutines as runImportationTasks
 import br.ufrn.dimap.services.ExecutionService.interpolateUsingCoroutines as runInterpolationTasks
 import br.ufrn.dimap.services.ExecutionService.printResult
@@ -19,7 +19,7 @@ fun main() {
     val checkpoint3 = currentTimeMillis()
 
     defineExportationPath()
-    runExportationTasks()
+    runExportationTask()
 
     val checkpoint4 = currentTimeMillis()
 
