@@ -1,5 +1,6 @@
 package br.ufrn.dimap.services
 
+import br.ufrn.dimap.entities.KnownPoint
 import br.ufrn.dimap.entities.UnknownPoint
 import br.ufrn.dimap.repositories.LocationRepository
 import kotlin.math.pow
@@ -10,9 +11,11 @@ object InterpolationService {
         var denominator = 0.0
         val powerParameter = 2.5
 
-        for (knownPoint in LocationRepository.instance!!.getKnownPoints()) {
-            numerator += knownPoint.getTemperature()!! / knownPoint.getDistanceFromAnotherPoint(unknownPoint)
-                .pow(powerParameter)
+        val knownPointsIterator: Iterator<KnownPoint> = LocationRepository.instance.knownPointsIterator
+
+        while (knownPointsIterator.hasNext()) {
+            val knownPoint = knownPointsIterator.next()
+            numerator += (knownPoint.getTemperature()?:0.0) / knownPoint.getDistanceFromAnotherPoint(unknownPoint).pow(powerParameter)
             denominator += 1 / knownPoint.getDistanceFromAnotherPoint(unknownPoint).pow(powerParameter)
         }
 

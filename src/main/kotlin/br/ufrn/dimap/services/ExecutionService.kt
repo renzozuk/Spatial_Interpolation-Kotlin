@@ -4,15 +4,16 @@ import br.ufrn.dimap.entities.UnknownPoint
 import br.ufrn.dimap.repositories.LocationRepository
 import br.ufrn.dimap.services.FileManagementService.exportInterpolations
 import br.ufrn.dimap.services.InterpolationService.assignTemperatureToUnknownPoints
-import kotlinx.coroutines.*
 import java.io.IOException
 import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.Semaphore as JavaSemaphore
 import java.util.function.Consumer
 import java.util.stream.Collectors
 import java.util.stream.IntStream
+import kotlinx.coroutines.*
+import kotlin.math.floor
 import kotlinx.coroutines.sync.Mutex as KotlinMutex
 import kotlinx.coroutines.sync.Semaphore as KotlinSemaphore
-import java.util.concurrent.Semaphore as JavaSemaphore
 
 object ExecutionService {
     fun runSerial(task: Runnable) {
@@ -84,29 +85,30 @@ object ExecutionService {
     }
 
     fun interpolateUsingCoroutines() {
-        val unknownPoints: List<UnknownPoint> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
+        val unknownPoints: List<UnknownPoint> = LocationRepository.instance.unknownPointsAsAList
+
+        val quantity = Runtime.getRuntime().availableProcessors()
 
         runBlocking {
-            val firstTask = async(Dispatchers.Default) { assignTemperatureToUnknownPoints(unknownPoints.subList(0, unknownPoints.size / 4)) }
+            val tasks: MutableSet<Deferred<*>> = HashSet()
 
-            val secondTask = async(Dispatchers.Default) { assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4, unknownPoints.size / 2)) }
-
-            val thirdTask = async(Dispatchers.Default) { assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 2, unknownPoints.size / 4 * 3)) }
-
-            val fourthTask = async(Dispatchers.Default) { assignTemperatureToUnknownPoints(unknownPoints.subList(unknownPoints.size / 4 * 3, unknownPoints.size)) }
+            for (i in 0..< quantity) {
+                tasks.add(async(Dispatchers.Default) { assignTemperatureToUnknownPoints(unknownPoints.subList((floor((unknownPoints.size / quantity * i).toDouble())).toInt(),
+                    floor((unknownPoints.size / quantity * (i + 1)).toDouble()).toInt()
+                )) })
+            }
 
             runBlocking {
-                firstTask.await()
-                secondTask.await()
-                thirdTask.await()
-                fourthTask.await()
+                for (task in tasks) {
+                    task.await()
+                }
             }
         }
     }
 
     fun exportUsingCoroutines() {
         runBlocking {
-            val uniqueTask = async(Dispatchers.Default) { exportInterpolations(LocationRepository.instance!!.getUnknownPoints()) }
+            val uniqueTask = async(Dispatchers.Default) { exportInterpolations(LocationRepository.instance.getUnknownPoints()) }
 
             runBlocking {
                 uniqueTask.await()
@@ -199,7 +201,7 @@ object ExecutionService {
         }
 
     private fun getInterpolationTasksByQuantity(quantity: Int): Set<Runnable> {
-        val unknownPoints: List<UnknownPoint?> = LocationRepository.instance!!.getUnknownPoints().stream().toList()
+        val unknownPoints: List<UnknownPoint?> = LocationRepository.instance.unknownPointsAsAList
 
         val tasks: MutableSet<Runnable> = HashSet()
 
@@ -207,8 +209,8 @@ object ExecutionService {
             tasks.add(Runnable {
                 assignTemperatureToUnknownPoints(
                     unknownPoints.subList(
-                        unknownPoints.size / quantity * i,
-                        unknownPoints.size / quantity * (i + 1)
+                        floor((unknownPoints.size / quantity * i).toDouble()).toInt(),
+                        floor((unknownPoints.size / quantity * (i + 1)).toDouble()).toInt()
                     )
                 )
             })
@@ -221,7 +223,7 @@ object ExecutionService {
         get() {
             return Runnable {
                 try {
-                    exportInterpolations(LocationRepository.instance!!.getUnknownPoints())
+                    exportInterpolations(LocationRepository.instance.getUnknownPoints())
                 } catch (e: IOException) {
                     throw java.lang.RuntimeException(e)
                 } catch (e: InterruptedException) {

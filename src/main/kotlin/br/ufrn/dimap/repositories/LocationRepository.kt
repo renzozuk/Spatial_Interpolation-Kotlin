@@ -2,30 +2,25 @@ package br.ufrn.dimap.repositories
 
 import br.ufrn.dimap.entities.KnownPoint
 import br.ufrn.dimap.entities.UnknownPoint
+import java.util.stream.Collectors
 
 class LocationRepository private constructor() {
     private val knownPoints: MutableSet<KnownPoint> = HashSet()
     private val unknownPoints: MutableSet<UnknownPoint> = HashSet()
 
     companion object {
-        var instance: LocationRepository? = null
-            get() {
-                if (field == null) {
-                    field = LocationRepository()
-                }
-
-                return field
-            }
-            private set
+        val instance: LocationRepository = LocationRepository()
     }
 
-    fun getKnownPoints(): Set<KnownPoint> {
-        return knownPoints
-    }
+    val knownPointsIterator: Iterator<KnownPoint>
+        get() = knownPoints.iterator()
 
     fun getUnknownPoints(): Set<UnknownPoint> {
-        return unknownPoints
+        return unknownPoints.stream().collect(Collectors.toUnmodifiableSet())
     }
+
+    val unknownPointsAsAList: List<UnknownPoint>
+        get() = unknownPoints.stream().toList()
 
     fun addKnownPoint(knownPoint: KnownPoint) {
         knownPoints.add(knownPoint)
