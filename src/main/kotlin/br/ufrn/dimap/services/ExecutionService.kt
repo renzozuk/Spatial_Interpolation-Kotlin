@@ -4,16 +4,12 @@ import br.ufrn.dimap.entities.UnknownPoint
 import br.ufrn.dimap.repositories.LocationRepository
 import br.ufrn.dimap.services.FileManagementService.exportInterpolations
 import br.ufrn.dimap.services.InterpolationService.assignTemperatureToUnknownPoints
+import kotlinx.coroutines.*
 import java.io.IOException
-import java.util.concurrent.locks.ReentrantLock
-import java.util.concurrent.Semaphore as JavaSemaphore
 import java.util.function.Consumer
 import java.util.stream.Collectors
 import java.util.stream.IntStream
-import kotlinx.coroutines.*
 import kotlin.math.floor
-import kotlinx.coroutines.sync.Mutex as KotlinMutex
-import kotlinx.coroutines.sync.Semaphore as KotlinSemaphore
 
 object ExecutionService {
     fun runSerial(task: Runnable) {
@@ -54,28 +50,11 @@ object ExecutionService {
         }
     }
     
-    fun mutexVersionOfImportationUsingCoroutines() {
-        val lock = KotlinMutex()
-
+    fun atomicVersionOfImportationUsingCoroutines() {
         runBlocking {
-            val firstTask = async(Dispatchers.Default) { FileManagementService.importRandomData(lock) }
+            val firstTask = async(Dispatchers.Default) { FileManagementService.importRandomData() }
 
-            val secondTask = async(Dispatchers.Default) { FileManagementService.importUnknownLocations(lock) }
-
-            runBlocking {
-                firstTask.await()
-                secondTask.await()
-            }
-        }
-    }
-
-    fun semaphoreVersionOfImportationUsingCoroutines() {
-        val semaphore = KotlinSemaphore(1)
-
-        runBlocking {
-            val firstTask = async(Dispatchers.Default) { FileManagementService.importRandomData(semaphore) }
-
-            val secondTask = async(Dispatchers.Default) { FileManagementService.importUnknownLocations(semaphore) }
+            val secondTask = async(Dispatchers.Default) { FileManagementService.importUnknownLocations() }
 
             runBlocking {
                 firstTask.await()
@@ -116,7 +95,7 @@ object ExecutionService {
         }
     }
 
-    val importationTasksForSerial: Set<Runnable>
+    val atomicVersionOfImportationTasksForThreads: Set<Runnable>
         get() {
             val importKnownPoints = Runnable {
                 try {
@@ -131,60 +110,6 @@ object ExecutionService {
             val importUnknownPoints = Runnable {
                 try {
                     FileManagementService.importUnknownLocations()
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            return setOf(importKnownPoints, importUnknownPoints)
-        }
-
-    val mutexVersionOfImportationTasksForThreads: Set<Runnable>
-        get() {
-            val lock = ReentrantLock()
-
-            val importKnownPoints = Runnable {
-                try {
-                    FileManagementService.importRandomData(lock)
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            val importUnknownPoints = Runnable {
-                try {
-                    FileManagementService.importUnknownLocations(lock)
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            return setOf(importKnownPoints, importUnknownPoints)
-        }
-
-    val semaphoreVersionOfImportationTasksForThreads: Set<Runnable>
-        get() {
-            val semaphore = JavaSemaphore(1)
-
-            val importKnownPoints = Runnable {
-                try {
-                    FileManagementService.importRandomData(semaphore)
-                } catch (e: IOException) {
-                    throw RuntimeException(e)
-                } catch (e: InterruptedException) {
-                    throw RuntimeException(e)
-                }
-            }
-
-            val importUnknownPoints = Runnable {
-                try {
-                    FileManagementService.importUnknownLocations(semaphore)
                 } catch (e: IOException) {
                     throw RuntimeException(e)
                 } catch (e: InterruptedException) {

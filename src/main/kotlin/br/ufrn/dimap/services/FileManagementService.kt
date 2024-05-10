@@ -24,102 +24,13 @@ object FileManagementService {
     private var exportationPath = Path.of(HOME + "output//exported_locations.csv")
 
     @Throws(IOException::class)
-    fun importRandomData() {
-        importKnownLocations("databases//random_data.csv")
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    fun importRandomData(lock: Lock) {
-        importKnownLocations(lock, "databases//random_data.csv")
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    suspend fun importRandomData(lock: KotlinMutex) {
-        importKnownLocations(lock, "databases//random_data.csv")
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    fun importRandomData(semaphore: JavaSemaphore) {
-        importKnownLocations(semaphore, "databases//random_data.csv")
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    suspend fun importRandomData(semaphore: KotlinSemaphore) {
-        importKnownLocations(semaphore, "databases//random_data.csv")
+    fun importRandomData(instance: LocationRepository = LocationRepository.instance) {
+        importKnownLocations(instance, "databases//random_data.csv")
     }
 
     @Throws(IOException::class)
-    fun importTrueData() {
-        importKnownLocations("databases//true_data.csv")
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    fun importTrueData(lock: Lock) {
-        importKnownLocations(lock, "databases//true_data.csv")
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    suspend fun importTrueData(lock: KotlinMutex) {
-        importKnownLocations(lock, "databases//true_data.csv")
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    fun importTrueData(semaphore: JavaSemaphore) {
-        importKnownLocations(semaphore, "databases//true_data.csv")
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    suspend fun importTrueData(semaphore: KotlinSemaphore) {
-        importKnownLocations(semaphore, "databases//true_data.csv")
-    }
-
-    @Throws(IOException::class)
-    fun importKnownLocations(dataPath: String) {
-        importKnownLocations(LocationRepository.instance!!, dataPath)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    fun importKnownLocations(lock: Lock, dataPath: String) {
-        lock.lock()
-
-        val locationRepository: LocationRepository = LocationRepository.instance!!
-
-        lock.unlock()
-
-        importKnownLocations(locationRepository, dataPath)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    suspend fun importKnownLocations(lock: KotlinMutex, dataPath: String) {
-        lock.lock()
-
-        val locationRepository: LocationRepository = LocationRepository.instance!!
-
-        lock.unlock()
-
-        importKnownLocations(locationRepository, dataPath)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    fun importKnownLocations(semaphore: JavaSemaphore, dataPath: String) {
-        semaphore.acquire()
-
-        val locationRepository: LocationRepository = LocationRepository.instance!!
-
-        semaphore.release()
-
-        importKnownLocations(locationRepository, dataPath)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    suspend fun importKnownLocations(semaphore: KotlinSemaphore, dataPath: String) {
-        semaphore.acquire()
-
-        val locationRepository: LocationRepository = LocationRepository.instance!!
-
-        semaphore.release()
-
-        importKnownLocations(locationRepository, dataPath)
+    fun importTrueData(instance: LocationRepository = LocationRepository.instance) {
+        importKnownLocations(instance, "databases//true_data.csv")
     }
 
     @Throws(IOException::class, InterruptedException::class)
@@ -138,56 +49,7 @@ object FileManagementService {
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    fun importUnknownLocations() {
-        importUnknownLocations(LocationRepository.instance!!)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    fun importUnknownLocations(lock: Lock) {
-        lock.lock()
-
-        val locationRepository: LocationRepository = LocationRepository.instance!!
-
-        lock.unlock()
-
-        importUnknownLocations(locationRepository)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    suspend fun importUnknownLocations(lock: KotlinMutex) {
-        lock.lock()
-
-        val locationRepository: LocationRepository = LocationRepository.instance!!
-
-        lock.unlock()
-
-        importUnknownLocations(locationRepository)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    fun importUnknownLocations(semaphore: JavaSemaphore) {
-        semaphore.acquire()
-
-        val locationRepository: LocationRepository = LocationRepository.instance!!
-
-        semaphore.release()
-
-        importUnknownLocations(locationRepository)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    suspend fun importUnknownLocations(semaphore: KotlinSemaphore) {
-        semaphore.acquire()
-
-        val locationRepository: LocationRepository = LocationRepository.instance!!
-
-        semaphore.release()
-
-        importUnknownLocations(locationRepository)
-    }
-
-    @Throws(IOException::class, InterruptedException::class)
-    fun importUnknownLocations(locationRepository: LocationRepository) {
+    fun importUnknownLocations(locationRepository: LocationRepository = LocationRepository.instance) {
         val bufferedReader = newBufferedReader(Path.of(HOME + "unknown_locations.csv"))
 
         var line: String?

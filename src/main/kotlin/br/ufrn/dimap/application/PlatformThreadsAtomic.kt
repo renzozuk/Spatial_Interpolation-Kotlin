@@ -1,10 +1,10 @@
 package br.ufrn.dimap.application
 
 import br.ufrn.dimap.services.ExecutionService.exportationTask
+import br.ufrn.dimap.services.ExecutionService.atomicVersionOfImportationTasksForThreads as importationTasks
 import br.ufrn.dimap.services.ExecutionService.interpolationTasks
 import br.ufrn.dimap.services.ExecutionService.printResult
-import br.ufrn.dimap.services.ExecutionService.runVirtualThreads
-import br.ufrn.dimap.services.ExecutionService.semaphoreVersionOfImportationTasksForThreads as importationTasks
+import br.ufrn.dimap.services.ExecutionService.runPlatformThreads
 import br.ufrn.dimap.services.FileManagementService.defineExportationPath
 import java.lang.System.currentTimeMillis
 
@@ -12,16 +12,16 @@ import java.lang.System.currentTimeMillis
 fun main() {
     val checkpoint1 = currentTimeMillis()
 
-    runVirtualThreads(importationTasks)
+    runPlatformThreads(importationTasks)
 
     val checkpoint2 = currentTimeMillis()
 
-    runVirtualThreads(interpolationTasks)
+    runPlatformThreads(interpolationTasks)
 
     val checkpoint3 = currentTimeMillis()
 
     defineExportationPath()
-    runVirtualThreads(exportationTask)
+    runPlatformThreads(exportationTask)
 
     val checkpoint4 = currentTimeMillis()
 

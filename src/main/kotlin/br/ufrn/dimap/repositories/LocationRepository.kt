@@ -2,6 +2,7 @@ package br.ufrn.dimap.repositories
 
 import br.ufrn.dimap.entities.KnownPoint
 import br.ufrn.dimap.entities.UnknownPoint
+import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
 
 class LocationRepository private constructor() {
@@ -9,7 +10,8 @@ class LocationRepository private constructor() {
     private val unknownPoints: MutableSet<UnknownPoint> = HashSet()
 
     companion object {
-        val instance: LocationRepository = LocationRepository()
+        val atomicInstance: AtomicReference<LocationRepository> = AtomicReference(LocationRepository())
+        val instance: LocationRepository = atomicInstance.get()
     }
 
     val knownPointsIterator: Iterator<KnownPoint>
