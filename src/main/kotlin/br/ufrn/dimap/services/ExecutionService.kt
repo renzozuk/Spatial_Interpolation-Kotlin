@@ -7,6 +7,7 @@ import br.ufrn.dimap.services.FileManagementService.getExportationCallable
 import br.ufrn.dimap.services.FileManagementService.importRandomData
 import br.ufrn.dimap.services.FileManagementService.importUnknownLocations
 import br.ufrn.dimap.services.InterpolationService.assignTemperatureToUnknownPoints
+import br.ufrn.dimap.services.InterpolationService.assignTemperatureToUnknownPointsInParallel
 import br.ufrn.dimap.services.InterpolationService.getInterpolationCallable
 import kotlinx.coroutines.*
 import java.io.IOException
@@ -197,7 +198,7 @@ object ExecutionService {
         }
     }
 
-    fun importThroughSingleThreadsAndCallable(): Set<Future<String>> {
+    fun importThroughSingleThreadAndFuture(): Set<Future<String>> {
         Executors.newSingleThreadExecutor().use { executionService ->
             val futures: MutableSet<Future<String>> = HashSet()
             futures.add(executionService.submit<String> {
@@ -247,6 +248,30 @@ object ExecutionService {
         return tasks
     }
 
+    val interpolationTasksInParallel: Set<Runnable>
+        get() {
+            return getInterpolationTasksInParallelByQuantity(Runtime.getRuntime().availableProcessors())
+        }
+
+    private fun getInterpolationTasksInParallelByQuantity(quantity: Int): Set<Runnable> {
+        val unknownPoints: List<UnknownPoint?> = LocationRepository.instance.unknownPointsAsAList
+
+        val tasks: MutableSet<Runnable> = HashSet()
+
+        IntStream.range(0, quantity).forEach { i: Int ->
+            tasks.add(Runnable {
+                assignTemperatureToUnknownPointsInParallel(
+                    unknownPoints.subList(
+                        floor((unknownPoints.size / quantity * i).toDouble()).toInt(),
+                        floor((unknownPoints.size / quantity * (i + 1)).toDouble()).toInt()
+                    )
+                )
+            })
+        }
+
+        return tasks
+    }
+
     fun interpolateUsingCoroutines() {
         val unknownPoints: List<UnknownPoint> = LocationRepository.instance.unknownPointsAsAList
 
@@ -269,7 +294,29 @@ object ExecutionService {
         }
     }
 
-    fun interpolateThroughPlatformThreadsAndCallable(): Set<Future<UnknownPoint>> {
+    fun interpolateUsingCoroutinesInParallel() {
+        val unknownPoints: List<UnknownPoint> = LocationRepository.instance.unknownPointsAsAList
+
+        val quantity = Runtime.getRuntime().availableProcessors()
+
+        runBlocking {
+            val tasks: MutableSet<Deferred<*>> = HashSet()
+
+            for (i in 0..< quantity) {
+                tasks.add(async(Dispatchers.Default) { assignTemperatureToUnknownPointsInParallel(unknownPoints.subList((floor((unknownPoints.size / quantity * i).toDouble())).toInt(),
+                    floor((unknownPoints.size / quantity * (i + 1)).toDouble()).toInt()
+                )) })
+            }
+
+            runBlocking {
+                for (task in tasks) {
+                    task.await()
+                }
+            }
+        }
+    }
+
+    fun interpolateThroughPlatformThreadsAndFuture(): Set<Future<UnknownPoint>> {
         Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()).use { executionService ->
             val futures: MutableSet<Future<UnknownPoint>> = HashSet()
             for (unknownPoint in LocationRepository.instance.getUnknownPoints()) {
@@ -279,7 +326,7 @@ object ExecutionService {
         }
     }
 
-    fun interpolateThroughVirtualThreadsAndCallable(): Set<Future<UnknownPoint>> {
+    fun interpolateThroughVirtualThreadsAndFuture(): Set<Future<UnknownPoint>> {
         Executors.newVirtualThreadPerTaskExecutor().use { executionService ->
             val futureResult: MutableSet<Future<UnknownPoint>> = HashSet()
             for (unknownPoint in LocationRepository.instance.getUnknownPoints()) {
@@ -307,6 +354,16 @@ object ExecutionService {
             }
         }
 
+    fun exportThroughSingleThreadAndFuture(): Set<Future<UnknownPoint?>> {
+        Executors.newSingleThreadExecutor().use { executionService ->
+            val futures: MutableSet<Future<UnknownPoint?>> = HashSet()
+            for (unknownPoint in LocationRepository.instance.getUnknownPoints()) {
+                futures.add(executionService.submit(getExportationCallable(unknownPoint)))
+            }
+            return futures
+        }
+    }
+
     fun exportUsingCoroutines() {
         runBlocking {
             val uniqueTask = async(Dispatchers.Default) { exportInterpolations(LocationRepository.instance.getUnknownPoints()) }
@@ -314,16 +371,6 @@ object ExecutionService {
             runBlocking {
                 uniqueTask.await()
             }
-        }
-    }
-
-    fun exportThroughSingleThreadAndCallable(): Set<Future<UnknownPoint?>> {
-        Executors.newSingleThreadExecutor().use { executionService ->
-            val futures: MutableSet<Future<UnknownPoint?>> = HashSet()
-            for (unknownPoint in LocationRepository.instance.getUnknownPoints()) {
-                futures.add(executionService.submit(getExportationCallable(unknownPoint)))
-            }
-            return futures
         }
     }
 
