@@ -43,3 +43,4 @@ src/main/resources/databases/*
 src/main/resources/META-INF/
 src/main/resources/output/*
 !src/main/resources/output/exported_locations_2024.04.27-22.31.30.csv
+!src/main/resources/output/exported_locations_2024.05.24-03.40.57.csv

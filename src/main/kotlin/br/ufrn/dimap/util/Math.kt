@@ -8,7 +8,7 @@ object Math {
 
         var result = 1.0
 
-        for (i in 0 until y) {
+        for (i in 0..< y) {
             result *= x
         }
 

@@ -18,10 +18,10 @@ object InterpolationService {
             val knownPoint = knownPointsIterator.next()
 
             // 3 is power parameter
-            val dpp: Double = pow(unknownPoint.getDistanceFromAnotherPoint(knownPoint), 3)
+            val distancePoweredToPowerParameter = pow(unknownPoint.getDistanceFromAnotherPoint(knownPoint), 3)
 
-            numerator += knownPoint.getTemperature()!! / dpp
-            denominator += 1 / dpp
+            numerator += knownPoint.getTemperature()!! / distancePoweredToPowerParameter
+            denominator += 1 / distancePoweredToPowerParameter
         }
 
         unknownPoint.setTemperature(numerator / denominator)
@@ -46,10 +46,10 @@ object InterpolationService {
                 val knownPoint = knownPointsIterator.next()
 
                 // 3 is power parameter
-                val dpp = pow(unknownPoint.getDistanceFromAnotherPoint(knownPoint), 3)
+                val distancePoweredToPowerParameter = pow(unknownPoint.getDistanceFromAnotherPoint(knownPoint), 3)
 
-                numerator += knownPoint.getTemperature()!! / dpp
-                denominator += 1 / dpp
+                numerator += knownPoint.getTemperature()!! / distancePoweredToPowerParameter
+                denominator += 1 / distancePoweredToPowerParameter
             }
 
             unknownPoint.setTemperature(numerator / denominator)
