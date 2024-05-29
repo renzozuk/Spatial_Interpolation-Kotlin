@@ -7,7 +7,7 @@ import org.openjdk.jmh.annotations.*;
 import java.io.IOException;
 
 @State(Scope.Benchmark)
-public class SerialParallel {
+public class ParallelStream {
     @Setup
     public void loadDataset() throws IOException, InterruptedException {
         FileManagementService.INSTANCE.importRandomData();

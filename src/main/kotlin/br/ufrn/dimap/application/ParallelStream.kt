@@ -1,7 +1,7 @@
 package br.ufrn.dimap.application
 
 import br.ufrn.dimap.services.ExecutionService.exportationTask
-import br.ufrn.dimap.services.ExecutionService.importationTasksForSerial
+import br.ufrn.dimap.services.ExecutionService.importationTasksForSerial as importationTasks
 import br.ufrn.dimap.services.ExecutionService.interpolationTasksInParallel as interpolationTasks
 import br.ufrn.dimap.services.ExecutionService.printResult
 import br.ufrn.dimap.services.ExecutionService.runSerial
@@ -11,7 +11,7 @@ import java.lang.System.currentTimeMillis
 fun main() {
     val checkpoint1 = currentTimeMillis()
 
-    runSerial(importationTasksForSerial)
+    runSerial(importationTasks)
 
     val checkpoint2 = currentTimeMillis()
 
