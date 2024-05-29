@@ -3,6 +3,8 @@ package br.ufrn.dimap.services
 import br.ufrn.dimap.entities.UnknownPoint
 import br.ufrn.dimap.repositories.LocationRepository
 import br.ufrn.dimap.services.FileManagementService.exportInterpolations
+import br.ufrn.dimap.services.FileManagementService.importRandomData
+import br.ufrn.dimap.services.FileManagementService.importUnknownLocations
 import br.ufrn.dimap.services.InterpolationService.assignTemperatureToUnknownPoints
 import kotlinx.coroutines.*
 import java.io.IOException
@@ -52,9 +54,9 @@ object ExecutionService {
     
     fun atomicVersionOfImportationUsingCoroutines() {
         runBlocking {
-            val firstTask = async(Dispatchers.Default) { FileManagementService.importRandomData() }
+            val firstTask = async(Dispatchers.Default) { importRandomData() }
 
-            val secondTask = async(Dispatchers.Default) { FileManagementService.importUnknownLocations() }
+            val secondTask = async(Dispatchers.Default) { importUnknownLocations() }
 
             runBlocking {
                 firstTask.await()
@@ -63,43 +65,11 @@ object ExecutionService {
         }
     }
 
-    fun interpolateUsingCoroutines() {
-        val unknownPoints: List<UnknownPoint> = LocationRepository.instance.unknownPointsAsAList
-
-        val quantity = Runtime.getRuntime().availableProcessors()
-
-        runBlocking {
-            val tasks: MutableSet<Deferred<*>> = HashSet()
-
-            for (i in 0..< quantity) {
-                tasks.add(async(Dispatchers.Default) { assignTemperatureToUnknownPoints(unknownPoints.subList((floor((unknownPoints.size / quantity * i).toDouble())).toInt(),
-                    floor((unknownPoints.size / quantity * (i + 1)).toDouble()).toInt()
-                )) })
-            }
-
-            runBlocking {
-                for (task in tasks) {
-                    task.await()
-                }
-            }
-        }
-    }
-
-    fun exportUsingCoroutines() {
-        runBlocking {
-            val uniqueTask = async(Dispatchers.Default) { exportInterpolations(LocationRepository.instance.getUnknownPoints()) }
-
-            runBlocking {
-                uniqueTask.await()
-            }
-        }
-    }
-
     val atomicVersionOfImportationTasksForThreads: Set<Runnable>
         get() {
             val importKnownPoints = Runnable {
                 try {
-                    FileManagementService.importRandomData()
+                    importRandomData()
                 } catch (e: IOException) {
                     throw RuntimeException(e)
                 } catch (e: InterruptedException) {
@@ -109,7 +79,7 @@ object ExecutionService {
 
             val importUnknownPoints = Runnable {
                 try {
-                    FileManagementService.importUnknownLocations()
+                    importUnknownLocations()
                 } catch (e: IOException) {
                     throw RuntimeException(e)
                 } catch (e: InterruptedException) {
@@ -144,6 +114,28 @@ object ExecutionService {
         return tasks
     }
 
+    fun interpolateUsingCoroutines() {
+        val unknownPoints: List<UnknownPoint> = LocationRepository.instance.unknownPointsAsAList
+
+        val quantity = Runtime.getRuntime().availableProcessors()
+
+        runBlocking {
+            val tasks: MutableSet<Deferred<*>> = HashSet()
+
+            for (i in 0..< quantity) {
+                tasks.add(async(Dispatchers.Default) { assignTemperatureToUnknownPoints(unknownPoints.subList((floor((unknownPoints.size / quantity * i).toDouble())).toInt(),
+                    floor((unknownPoints.size / quantity * (i + 1)).toDouble()).toInt()
+                )) })
+            }
+
+            runBlocking {
+                for (task in tasks) {
+                    task.await()
+                }
+            }
+        }
+    }
+
     val exportationTask: Runnable
         get() {
             return Runnable {
@@ -156,6 +148,16 @@ object ExecutionService {
                 }
             }
         }
+
+    fun exportUsingCoroutines() {
+        runBlocking {
+            val uniqueTask = async(Dispatchers.Default) { exportInterpolations(LocationRepository.instance.getUnknownPoints()) }
+
+            runBlocking {
+                uniqueTask.await()
+            }
+        }
+    }
 
     fun printResult(checkpoint1: Long, checkpoint2: Long) {
         println("Interpolation time: %.3fs".format((checkpoint2 - checkpoint1) / 1e3))

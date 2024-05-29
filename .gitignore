@@ -37,7 +37,10 @@ build/
 ### Mac OS ###
 .DS_Store
 
+*.jfr
 src/main/resources/databases/*
 !src/main/resources/databases/true_data.csv
+src/main/resources/META-INF/
 src/main/resources/output/*
 !src/main/resources/output/exported_locations_2024.04.27-22.31.30.csv
+!src/main/resources/output/exported_locations_2024.05.24-03.46.35.csv

@@ -3,26 +3,30 @@ package br.ufrn.dimap.services
 import br.ufrn.dimap.entities.KnownPoint
 import br.ufrn.dimap.entities.UnknownPoint
 import br.ufrn.dimap.repositories.LocationRepository
-import kotlin.math.pow
+import br.ufrn.dimap.util.Math.pow
+import java.util.function.Consumer
 
 object InterpolationService {
-    private fun assignTemperatureToUnknownPoint(unknownPoint: UnknownPoint) {
+    fun assignTemperatureToUnknownPoint(unknownPoint: UnknownPoint) {
         var numerator = 0.0
         var denominator = 0.0
-        val powerParameter = 2.5
 
         val knownPointsIterator: Iterator<KnownPoint> = LocationRepository.instance.knownPointsIterator
 
         while (knownPointsIterator.hasNext()) {
             val knownPoint = knownPointsIterator.next()
-            numerator += (knownPoint.getTemperature()?:0.0) / knownPoint.getDistanceFromAnotherPoint(unknownPoint).pow(powerParameter)
-            denominator += 1 / knownPoint.getDistanceFromAnotherPoint(unknownPoint).pow(powerParameter)
+
+            // 3 is power parameter
+            val distancePoweredToPowerParameter = pow(unknownPoint.getDistanceFromAnotherPoint(knownPoint), 3)
+
+            numerator += knownPoint.getTemperature()!! / distancePoweredToPowerParameter
+            denominator += 1 / distancePoweredToPowerParameter
         }
 
         unknownPoint.setTemperature(numerator / denominator)
     }
 
-    fun assignTemperatureToUnknownPoints(unknownPoints: List<UnknownPoint?>) {
-        unknownPoints.forEach{ up -> assignTemperatureToUnknownPoint(up!!) }
+    fun assignTemperatureToUnknownPoints(unknownPoints: Collection<UnknownPoint?>) {
+        unknownPoints.forEach(Consumer { unknownPoint: UnknownPoint? -> assignTemperatureToUnknownPoint(unknownPoint!!) })
     }
 }
