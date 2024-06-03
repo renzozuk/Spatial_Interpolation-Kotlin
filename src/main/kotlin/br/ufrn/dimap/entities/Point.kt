@@ -1,5 +1,6 @@
 package br.ufrn.dimap.entities
 
+import br.ufrn.dimap.util.Math.DEGREES_TO_RADIANS
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -56,10 +57,13 @@ abstract class Point(latitude: Double, longitude: Double) {
             return 0.0
         }
 
-        val latitudeDistance = point.latitude * Math.PI / 180 - latitude * Math.PI / 180
-        val longitudeDistance = point.longitude * Math.PI / 180 - longitude * Math.PI / 180
-        val a = sin(latitudeDistance / 2) * sin(latitudeDistance / 2) + cos(latitude * Math.PI / 180) * cos(point.latitude * Math.PI / 180) * sin(longitudeDistance / 2) * sin(longitudeDistance / 2)
-        //        6378.137 = earth radius
-        return 6378.137 * 2 * atan2(sqrt(a), sqrt(1 - a))
+        val dLat = (point.latitude - latitude) * DEGREES_TO_RADIANS
+        val dLon = (point.longitude - longitude) * DEGREES_TO_RADIANS
+
+        val a = sin(dLat / 2.0) * sin(dLat / 2.0) +
+                cos(latitude * DEGREES_TO_RADIANS) * cos(point.latitude * DEGREES_TO_RADIANS) *
+                sin(dLon / 2.0) * sin(dLon / 2.0)
+
+        return 12742.0 * atan2(sqrt(a), sqrt(1 - a))
     }
 }
