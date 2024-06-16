@@ -21,7 +21,7 @@ class LocationRepository private constructor() {
         return unknownPoints.stream().collect(Collectors.toUnmodifiableSet())
     }
 
-    val unknownPointsAsAList: List<UnknownPoint>
+    val unknownPointsAsList: List<UnknownPoint>
         get() = unknownPoints.stream().toList()
 
     fun addKnownPoint(knownPoint: KnownPoint) {

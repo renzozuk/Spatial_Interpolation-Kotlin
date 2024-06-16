@@ -96,7 +96,7 @@ object ExecutionService {
         }
 
     private fun getInterpolationTasksByQuantity(quantity: Int): Set<Runnable> {
-        val unknownPoints: List<UnknownPoint?> = LocationRepository.instance.unknownPointsAsAList
+        val unknownPoints: List<UnknownPoint?> = LocationRepository.instance.unknownPointsAsList
 
         val tasks: MutableSet<Runnable> = HashSet()
 
@@ -115,7 +115,7 @@ object ExecutionService {
     }
 
     fun interpolateUsingCoroutines() {
-        val unknownPoints: List<UnknownPoint> = LocationRepository.instance.unknownPointsAsAList
+        val unknownPoints: List<UnknownPoint> = LocationRepository.instance.unknownPointsAsList
 
         val quantity = Runtime.getRuntime().availableProcessors()
 
