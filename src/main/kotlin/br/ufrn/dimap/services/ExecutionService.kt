@@ -168,6 +168,19 @@ object ExecutionService {
             return setOf(importKnownPoints, importUnknownPoints)
         }
 
+    fun importationUsingCoroutines() {
+        runBlocking {
+            val firstTask = async(Dispatchers.Default) { importRandomData() }
+
+            val secondTask = async(Dispatchers.Default) { importUnknownLocations() }
+
+            runBlocking {
+                firstTask.await()
+                secondTask.await()
+            }
+        }
+    }
+
     fun mutexVersionOfImportationUsingCoroutines() {
         val lock = KotlinMutex()
 

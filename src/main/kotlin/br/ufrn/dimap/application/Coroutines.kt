@@ -1,27 +1,25 @@
 package br.ufrn.dimap.application
 
-import br.ufrn.dimap.services.ExecutionService.exportationTask
-import br.ufrn.dimap.services.ExecutionService.mutexVersionOfImportationTasksForThreads as importationTasks
-import br.ufrn.dimap.services.ExecutionService.interpolationTasks
+import br.ufrn.dimap.services.ExecutionService.exportUsingCoroutines as runExportationTask
+import br.ufrn.dimap.services.ExecutionService.importationUsingCoroutines as runImportationTasks
+import br.ufrn.dimap.services.ExecutionService.interpolateUsingCoroutines as runInterpolationTasks
 import br.ufrn.dimap.services.ExecutionService.printResult
-import br.ufrn.dimap.services.ExecutionService.runVirtualThreads
 import br.ufrn.dimap.services.FileManagementService.defineExportationPath
 import java.lang.System.currentTimeMillis
 
-@Throws(InterruptedException::class)
 fun main() {
     val checkpoint1 = currentTimeMillis()
 
-    runVirtualThreads(importationTasks)
+    runImportationTasks()
 
     val checkpoint2 = currentTimeMillis()
 
-    runVirtualThreads(interpolationTasks)
+    runInterpolationTasks()
 
     val checkpoint3 = currentTimeMillis()
 
     defineExportationPath()
-    runVirtualThreads(exportationTask)
+    runExportationTask()
 
     val checkpoint4 = currentTimeMillis()
 

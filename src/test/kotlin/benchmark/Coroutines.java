@@ -7,7 +7,7 @@ import org.openjdk.jmh.annotations.*;
 import java.io.IOException;
 
 @State(Scope.Benchmark)
-public class PlatformThreadsMutex {
+public class Coroutines {
     @Setup
     public void loadDataset() throws IOException, InterruptedException {
         FileManagementService.INSTANCE.importRandomData();
@@ -17,8 +17,8 @@ public class PlatformThreadsMutex {
     @Benchmark
     @Warmup(iterations = 5)
     @Measurement(iterations = 5)
-    @Fork(value = 2)
-    public void execute() throws InterruptedException {
-        ExecutionService.INSTANCE.runPlatformThreads(ExecutionService.INSTANCE.getInterpolationTasks());
+    @Fork(value = 2, warmups = 1)
+    public void execute() {
+        ExecutionService.INSTANCE.interpolateUsingCoroutines();
     }
 }
