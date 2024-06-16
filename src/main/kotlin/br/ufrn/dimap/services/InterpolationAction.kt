@@ -13,7 +13,7 @@ class InterpolationAction : RecursiveAction {
     private val THRESHOLD = Runtime.getRuntime().availableProcessors()
 
     constructor() {
-        this.unknownPoints = LocationRepository.instance.unknownPointsAsAList
+        this.unknownPoints = LocationRepository.instance.unknownPointsAsList
         this.subListsQuantity = 0
     }
 
